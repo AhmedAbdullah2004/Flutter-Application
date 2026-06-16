@@ -30,10 +30,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     final success = await authProvider.register(
       _emailController.text.trim(),
       _passwordController.text,
+      "اسم المستخدم", // يمكنك إضافة حقل Name في الشاشة لاحقاً
     );
 
     if (success && mounted) {
@@ -43,13 +44,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           backgroundColor: AppColors.success,
         ),
       );
-      
-      // Navigate to OTP screen (pass dummy userId for now)
+
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => OtpVerificationScreen(
-            userId: 'temp-user-id',
             emailOrPhone: _emailController.text.trim(),
           ),
         ),
@@ -57,8 +56,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.error ?? 'حدث خطأ'),
+          content: Text(authProvider.error ?? 'حدث خطأ أثناء التسجيل'),
           backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -81,7 +81,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 20),
-                
+
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(
@@ -126,8 +126,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   height: 56,
                   child: ElevatedButton(
                     onPressed: authProvider.isLoading ? null : _register,
-                    child: authProvider.isLoading 
-                        ? const CircularProgressIndicator() 
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: authProvider.isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
                         : const Text('إنشاء الحساب', style: TextStyle(fontSize: 18)),
                   ),
                 ),

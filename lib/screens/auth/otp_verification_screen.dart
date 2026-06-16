@@ -5,12 +5,10 @@ import '../../utils/constants.dart';
 import '../home/home_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
-  final String userId;
   final String emailOrPhone;
 
   const OtpVerificationScreen({
     super.key,
-    required this.userId,
     required this.emailOrPhone,
   });
 
@@ -55,41 +53,43 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         _resendTimer--;
       });
       if (_resendTimer <= 0) {
-        setState(() {
-          _canResend = true;
-        });
+        setState(() => _canResend = true);
         return false;
       }
       return true;
     });
   }
 
-  String get _otpCode {
-    return _controllers.map((c) => c.text).join();
-  }
+  String get _otpCode => _controllers.map((c) => c.text).join();
 
   Future<void> _verifyOtp() async {
     if (_otpCode.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى إدخال الكود كاملاً')),
+        const SnackBar(content: Text('يرجى إدخال الكود كاملاً (6 أرقام)')),
       );
       return;
     }
 
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     setState(() => _isLoading = true);
 
-    // TODO: Call actual verify OTP API
-    // For now simulate success
-    await Future.delayed(const Duration(seconds: 1));
+    final success = await authProvider.verifyOtp(_otpCode);
 
-    if (mounted) {
-      setState(() => _isLoading = false);
-      
-      // Navigate to home after successful verification
+    setState(() => _isLoading = false);
+
+    if (success && mounted) {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
-        (route) => false,
+            (route) => false,
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'كود التحقق غير صحيح'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -97,15 +97,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   Future<void> _resendOtp() async {
     if (!_canResend) return;
 
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     setState(() => _isLoading = true);
 
-    // TODO: Call send OTP API
-    await Future.delayed(const Duration(seconds: 1));
+    // TODO: إذا كان عندك endpoint لإعادة إرسال OTP، استخدمه هنا
+    // حالياً هنعتمد على الـ login مرة أخرى
+    final success = await authProvider.login(widget.emailOrPhone);
 
-    if (mounted) {
-      setState(() => _isLoading = false);
+    setState(() => _isLoading = false);
+
+    if (success && mounted) {
       _startResendTimer();
-      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('تم إرسال كود جديد'),
@@ -117,6 +119,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -131,30 +135,30 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
-              
+
               const Icon(
                 Icons.verified_user_rounded,
                 size: 80,
                 color: AppColors.primary,
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               const Text(
                 'أدخل كود التأكيد',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               Text(
                 'أرسلنا كود مكون من 6 أرقام إلى\n${widget.emailOrPhone}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
               ),
-              
+
               const SizedBox(height: 40),
-              
+
               // OTP Input Boxes
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -188,7 +192,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         } else if (value.isEmpty && index > 0) {
                           _focusNodes[index - 1].requestFocus();
                         }
-                        
+
                         if (_otpCode.length == 6) {
                           _verifyOtp();
                         }
@@ -197,28 +201,27 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   );
                 }),
               ),
-              
+
               const SizedBox(height: 40),
-              
-              // Verify Button
+
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _verifyOtp,
+                  onPressed: _isLoading || authProvider.isLoading ? null : _verifyOtp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: _isLoading
+                  child: _isLoading || authProvider.isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text('تأكيد', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
-              // Resend Code
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -226,8 +229,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   GestureDetector(
                     onTap: _canResend ? _resendOtp : null,
                     child: Text(
-                      _canResend 
-                          ? 'إعادة الإرسال' 
+                      _canResend
+                          ? 'إعادة الإرسال'
                           : 'إعادة الإرسال بعد $_resendTimer ثانية',
                       style: TextStyle(
                         color: _canResend ? AppColors.primary : AppColors.textSecondary,

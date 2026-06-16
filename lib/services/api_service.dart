@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
 
@@ -7,84 +8,75 @@ class ApiService {
 
   Future<Map<String, dynamic>> get(String endpoint, {String? token}) async {
     final url = Uri.parse('$baseUrl$endpoint');
-    final headers = {
-      'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-
-    try {
-      final response = await http.get(url, headers: headers);
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('Network error: $e');
-    }
+    return _send(() => http.get(url, headers: _headers(token)), url);
   }
 
-  Future<Map<String, dynamic>> post(String endpoint, {Map<String, dynamic>? body, String? token}) async {
+  Future<Map<String, dynamic>> post(
+      String endpoint, {
+        Map<String, dynamic>? body,
+        String? token,
+      }) async {
     final url = Uri.parse('$baseUrl$endpoint');
-    final headers = {
-      'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
 
-    try {
-      final response = await http.post(
+    debugPrint('API POST: $url');
+    debugPrint('BODY: ${jsonEncode(body)}');
+
+    return _send(
+          () => http.post(
         url,
-        headers: headers,
+        headers: _headers(token),
         body: body != null ? jsonEncode(body) : null,
-      );
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('Network error: $e');
-    }
+      ),
+      url,
+    );
   }
 
-  Future<Map<String, dynamic>> put(String endpoint, {Map<String, dynamic>? body, String? token}) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = {
+  Map<String, String> _headers(String? token) {
+    return {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
-
-    try {
-      final response = await http.put(
-        url,
-        headers: headers,
-        body: body != null ? jsonEncode(body) : null,
-      );
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('Network error: $e');
-    }
   }
 
-  Future<Map<String, dynamic>> patch(String endpoint, {Map<String, dynamic>? body, String? token}) async {
-    final url = Uri.parse('$baseUrl$endpoint');
-    final headers = {
-      'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-
+  Future<Map<String, dynamic>> _send(
+      Future<http.Response> Function() request,
+      Uri url,
+      ) async {
     try {
-      final response = await http.patch(
-        url,
-        headers: headers,
-        body: body != null ? jsonEncode(body) : null,
+      final response = await request().timeout(
+        const Duration(seconds: 20),
       );
-      return _handleResponse(response);
-    } catch (e) {
-      throw Exception('Network error: $e');
-    }
-  }
 
-  Map<String, dynamic> _handleResponse(http.Response response) {
-    final dynamic decoded = jsonDecode(response.body);
-    final Map<String, dynamic> data = decoded is Map ? decoded.cast<String, dynamic>() : {'data': decoded};
-    
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return data;
-    } else {
-      throw Exception(data['message'] ?? 'حدث خطأ في الطلب');
+      debugPrint('STATUS: ${response.statusCode}');
+      debugPrint('RESPONSE: ${response.body}');
+
+      if (response.body.isEmpty) {
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return {'success': true};
+        }
+        throw Exception('HTTP ${response.statusCode}');
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      final data = decoded is Map<String, dynamic>
+          ? decoded
+          : {'data': decoded};
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return data;
+      }
+
+      throw Exception(
+        data['message'] ??
+            data['error'] ??
+            data['title'] ??
+            'HTTP ${response.statusCode}',
+      );
+    } catch (e) {
+      debugPrint('API ERROR: $e');
+      throw Exception('حدث خطأ في الاتصال: $e');
     }
   }
 }

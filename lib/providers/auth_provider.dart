@@ -1,88 +1,132 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart';
+import '../services/api_service.dart';
+import '../utils/constants.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final ApiService _apiService = ApiService();
+  final FlutterSecureStorage _secureStorage =
+  const FlutterSecureStorage();
 
   UserModel? _user;
   String? _token;
   bool _isLoading = false;
   String? _error;
+  String? _tempUserId;
 
   UserModel? get user => _user;
   String? get token => _token;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  String? get tempUserId => _tempUserId;
   bool get isLoggedIn => _token != null;
-
-  // Mock test credentials
-  static const String _mockEmail = 'ahmed@test.com';
-  static const String _mockPassword = 'Pass@123';
-  static const String _mockPhone = '01012345678';
 
   Future<void> loadToken() async {
     _token = await _secureStorage.read(key: 'auth_token');
-    if (_token != null) {
-      _user = UserModel(
-        id: 'd2a979a4-3c0c-44ca-99d6-c3d4d860ca80',
-        name: 'أحمد محمد',
-        email: _mockEmail,
-        phone: _mockPhone,
-        kycLevel: 'Basic',
-        status: 'Active',
-      );
-    }
     notifyListeners();
   }
 
-  Future<bool> register(String emailOrPhone, String password) async {
+  Future<bool> login(String emailOrPhone) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      final response = await _apiService.post(
+        ApiConstants.authLogin,
+        body: {
+          "emailOrPhone": emailOrPhone,
+        },
+      );
 
-    if (emailOrPhone.isNotEmpty && password.length >= 6) {
+      _tempUserId = response['userId']?.toString() ??
+          response['id']?.toString() ??
+          response['data']?['userId']?.toString();
+
+      if (_tempUserId == null || _tempUserId!.isEmpty) {
+        _error = 'لم يتم استلام userId من السيرفر';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
       _isLoading = false;
       notifyListeners();
       return true;
-    } else {
-      _error = 'يرجى إدخال بيانات صحيحة (كلمة المرور 6 أحرف على الأقل)';
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception:', '').trim();
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  Future<bool> login(String emailOrPhone, String password) async {
+  Future<bool> verifyOtp(String otpCode) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 900));
+    try {
+      final response = await _apiService.post(
+        ApiConstants.authVerifyOtp,
+        body: {
+          "userId": _tempUserId,
+          "otpCode": otpCode,
+        },
+      );
 
-    final isValid = (emailOrPhone == _mockEmail || emailOrPhone == _mockPhone) && 
-                    password == _mockPassword;
+      _token = response['token']?.toString() ??
+          response['accessToken']?.toString() ??
+          response['data']?['token']?.toString();
 
-    if (isValid) {
-      _token = 'mock_jwt_token_for_testing_123456789';
-      await _secureStorage.write(key: 'auth_token', value: _token);
+      if (_token == null || _token!.isEmpty) {
+        _error = 'لم يتم استلام Token من السيرفر';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
 
-      _user = UserModel(
-        id: 'd2a979a4-3c0c-44ca-99d6-c3d4d860ca80',
-        name: 'أحمد محمد',
-        email: _mockEmail,
-        phone: _mockPhone,
-        kycLevel: 'Basic',
-        status: 'Active',
+      await _secureStorage.write(
+        key: 'auth_token',
+        value: _token,
       );
 
       _isLoading = false;
       notifyListeners();
       return true;
-    } else {
-      _error = 'بيانات الدخول غير صحيحة. يرجى المحاولة مرة أخرى.';
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception:', '').trim();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> register(
+      String name,
+      String emailOrPhone,
+      String password,
+      ) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _apiService.post(
+        ApiConstants.authRegister,
+        body: {
+          "name": name,
+          "emailOrPhone": emailOrPhone,
+          "password": password,
+        },
+      );
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception:', '').trim();
       _isLoading = false;
       notifyListeners();
       return false;
@@ -90,23 +134,29 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> fetchUserProfile() async {
-    if (_user == null) {
-      _user = UserModel(
-        id: 'd2a979a4-3c0c-44ca-99d6-c3d4d860ca80',
-        name: 'أحمد محمد',
-        email: _mockEmail,
-        phone: _mockPhone,
-        kycLevel: 'Basic',
-        status: 'Active',
+    if (_token == null) return;
+
+    try {
+      final response = await _apiService.get(
+        ApiConstants.userProfile,
+        token: _token,
       );
+
+      _user = UserModel.fromJson(response);
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> logout() async {
     _token = null;
     _user = null;
+    _tempUserId = null;
+
     await _secureStorage.delete(key: 'auth_token');
+
     notifyListeners();
   }
 

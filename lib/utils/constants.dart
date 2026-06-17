@@ -37,7 +37,7 @@ class AppStrings {
 class ApiConstants {
   // السيرفر يحول الطلبات إلى HTTPS
   static const String baseUrl =
-      'https://digitalwallet-001-site1.site4future.com';
+      'http://digitalwallet-001-site1.site4future.com';
 
   // Authentication
   static const String authRegister = '/api/Auth/register';

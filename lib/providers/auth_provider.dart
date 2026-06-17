@@ -6,8 +6,7 @@ import '../utils/constants.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
-  final FlutterSecureStorage _secureStorage =
-  const FlutterSecureStorage();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   UserModel? _user;
   String? _token;
@@ -27,7 +26,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login(String emailOrPhone) async {
+  Future<bool> login(String emailOrPhone, String password) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -37,12 +36,13 @@ class AuthProvider extends ChangeNotifier {
         ApiConstants.authLogin,
         body: {
           "emailOrPhone": emailOrPhone,
+          "password": password,
         },
       );
 
-      _tempUserId = response['userId']?.toString() ??
-          response['id']?.toString() ??
-          response['data']?['userId']?.toString();
+      final data = response['data'];
+      _tempUserId = data?['userId']?.toString() ??
+          response['userId']?.toString();
 
       if (_tempUserId == null || _tempUserId!.isEmpty) {
         _error = 'لم يتم استلام userId من السيرفر';
@@ -73,12 +73,17 @@ class AuthProvider extends ChangeNotifier {
         body: {
           "userId": _tempUserId,
           "otpCode": otpCode,
+          "code": otpCode,
+          "otp": otpCode,
         },
       );
 
-      _token = response['token']?.toString() ??
-          response['accessToken']?.toString() ??
-          response['data']?['token']?.toString();
+      debugPrint("VERIFY RESPONSE = $response");
+
+      final data = response['data'];
+
+      _token = data?['token']?.toString() ??
+          response['token']?.toString();
 
       if (_token == null || _token!.isEmpty) {
         _error = 'لم يتم استلام Token من السيرفر';
@@ -87,15 +92,14 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
 
-      await _secureStorage.write(
-        key: 'auth_token',
-        value: _token,
-      );
+      await _secureStorage.write(key: 'auth_token', value: _token);
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
+      debugPrint("VERIFY ERROR = $e");
+
       _error = e.toString().replaceAll('Exception:', '').trim();
       _isLoading = false;
       notifyListeners();
@@ -105,7 +109,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> register(
       String name,
-      String emailOrPhone,
+      String email,
       String password,
       ) async {
     _isLoading = true;
@@ -116,9 +120,11 @@ class AuthProvider extends ChangeNotifier {
       await _apiService.post(
         ApiConstants.authRegister,
         body: {
-          "name": name,
-          "emailOrPhone": emailOrPhone,
+          "fullName": name,
+          "email": email,
+          "phoneNumber": "01012345678",
           "password": password,
+          "confirmPassword": password,
         },
       );
 
@@ -142,7 +148,7 @@ class AuthProvider extends ChangeNotifier {
         token: _token,
       );
 
-      _user = UserModel.fromJson(response);
+      _user = UserModel.fromJson(response['data'] ?? response);
       notifyListeners();
     } catch (e) {
       _error = e.toString();
@@ -154,9 +160,7 @@ class AuthProvider extends ChangeNotifier {
     _token = null;
     _user = null;
     _tempUserId = null;
-
     await _secureStorage.delete(key: 'auth_token');
-
     notifyListeners();
   }
 

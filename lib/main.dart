@@ -10,7 +10,7 @@ import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/currency/currency_exchange_screen.dart';
 import 'screens/money_request/money_request_screen.dart';
-import 'screens/transfer/transfer_screen.dart';   // ← أضفت الاستيراد
+import 'screens/transfer/transfer_screen.dart'; // ← أضفت الاستيراد
 
 void main() {
   runApp(const DigitalWalletApp());
@@ -36,7 +36,7 @@ class DigitalWalletApp extends StatelessWidget {
             seedColor: const Color(0xFF00C853),
             brightness: Brightness.light,
           ),
-          textTheme: GoogleFonts.cairoTextTheme(Theme.of(context).textTheme),
+          textTheme: Theme.of(context).textTheme,
           appBarTheme: const AppBarTheme(
             elevation: 0,
             centerTitle: true,
@@ -51,7 +51,7 @@ class DigitalWalletApp extends StatelessWidget {
           '/home': (context) => const HomeScreen(),
           '/currency': (context) => const CurrencyExchangeScreen(),
           '/money-request': (context) => const MoneyRequestScreen(),
-          '/transfer': (context) => const TransferScreen(),   // ← أضفت الـ route
+          '/transfer': (context) => const TransferScreen(), // ← أضفت الـ route
         },
       ),
     );
@@ -65,7 +65,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 

@@ -32,7 +32,13 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<WalletProvider>(context, listen: false).loadWallets();
+      final token =
+          Provider.of<AuthProvider>(context, listen: false).token;
+
+      Provider.of<WalletProvider>(
+        context,
+        listen: false,
+      ).loadWallets(token: token);
       _balanceController.forward();
     });
   }
@@ -153,7 +159,8 @@ class _HomeDashboardState extends State<HomeDashboard>
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async => walletProvider.loadWallets(),
+        onRefresh: () async =>
+            walletProvider.loadWallets(token: authProvider.token),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(

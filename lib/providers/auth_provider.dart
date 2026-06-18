@@ -19,10 +19,15 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get tempUserId => _tempUserId;
-  bool get isLoggedIn => _token != null;
+  bool get isLoggedIn => _token != null && _token!.isNotEmpty;
 
   Future<void> loadToken() async {
-    _token = await _secureStorage.read(key: 'auth_token');
+    final savedToken = await _secureStorage.read(key: 'auth_token');
+    _token = savedToken?.trim();
+
+    debugPrint('LOADED TOKEN: ${_token != null ? "YES" : "NO"}');
+    debugPrint('TOKEN LENGTH: ${_token?.length ?? 0}');
+
     notifyListeners();
   }
 
@@ -35,14 +40,17 @@ class AuthProvider extends ChangeNotifier {
       final response = await _apiService.post(
         ApiConstants.authLogin,
         body: {
-          "emailOrPhone": emailOrPhone,
+          "emailOrPhone": emailOrPhone.trim(),
           "password": password,
         },
       );
 
       final data = response['data'];
-      _tempUserId = data?['userId']?.toString() ??
-          response['userId']?.toString();
+
+      _tempUserId =
+          data?['userId']?.toString() ?? response['userId']?.toString();
+
+      debugPrint('LOGIN USER ID: $_tempUserId');
 
       if (_tempUserId == null || _tempUserId!.isEmpty) {
         _error = 'لم يتم استلام userId من السيرفر';
@@ -72,9 +80,9 @@ class AuthProvider extends ChangeNotifier {
         ApiConstants.authVerifyOtp,
         body: {
           "userId": _tempUserId,
-          "otpCode": otpCode,
-          "code": otpCode,
-          "otp": otpCode,
+          "otpCode": otpCode.trim(),
+          "code": otpCode.trim(),
+          "otp": otpCode.trim(),
         },
       );
 
@@ -82,8 +90,13 @@ class AuthProvider extends ChangeNotifier {
 
       final data = response['data'];
 
-      _token = data?['token']?.toString() ??
-          response['token']?.toString();
+      final receivedToken =
+          data?['token']?.toString() ?? response['token']?.toString();
+
+      _token = receivedToken?.trim();
+
+      debugPrint('TOKEN SAVED: ${_token != null && _token!.isNotEmpty}');
+      debugPrint('TOKEN LENGTH: ${_token?.length ?? 0}');
 
       if (_token == null || _token!.isEmpty) {
         _error = 'لم يتم استلام Token من السيرفر';
@@ -99,7 +112,6 @@ class AuthProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint("VERIFY ERROR = $e");
-
       _error = e.toString().replaceAll('Exception:', '').trim();
       _isLoading = false;
       notifyListeners();
@@ -107,11 +119,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> register(
-      String name,
-      String email,
-      String password,
-      ) async {
+  Future<bool> register(String name, String email, String password) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -120,8 +128,8 @@ class AuthProvider extends ChangeNotifier {
       await _apiService.post(
         ApiConstants.authRegister,
         body: {
-          "fullName": name,
-          "email": email,
+          "fullName": name.trim(),
+          "email": email.trim(),
           "phoneNumber": "01012345678",
           "password": password,
           "confirmPassword": password,
@@ -140,7 +148,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> fetchUserProfile() async {
-    if (_token == null) return;
+    if (_token == null || _token!.isEmpty) return;
 
     try {
       final response = await _apiService.get(

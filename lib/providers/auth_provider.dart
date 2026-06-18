@@ -95,6 +95,7 @@ class AuthProvider extends ChangeNotifier {
 
       _token = receivedToken?.trim();
 
+      debugPrint('TOKEN FULL = $_token');
       debugPrint('TOKEN SAVED: ${_token != null && _token!.isNotEmpty}');
       debugPrint('TOKEN LENGTH: ${_token?.length ?? 0}');
 

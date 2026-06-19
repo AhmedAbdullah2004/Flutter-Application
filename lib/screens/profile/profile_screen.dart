@@ -3,6 +3,11 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
 import '../auth/login_screen.dart';
+import 'personal_data_screen.dart';
+import 'security_screen.dart';
+import 'transaction_history_screen.dart';
+import 'help_support_screen.dart';
+import 'about_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -33,11 +38,21 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
 
-            _buildMenuItem(Icons.person_outline, 'البيانات الشخصية', () {}),
-            _buildMenuItem(Icons.security, 'الأمان والتحقق', () {}),
-            _buildMenuItem(Icons.history, 'سجل العمليات', () {}),
-            _buildMenuItem(Icons.help_outline, 'المساعدة والدعم', () {}),
-            _buildMenuItem(Icons.info_outline, 'عن التطبيق', () {}),
+            _buildMenuItem(Icons.person_outline, 'البيانات الشخصية', () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonalDataScreen()));
+            }),
+            _buildMenuItem(Icons.security, 'الأمان والتحقق', () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const SecurityScreen()));
+            }),
+            _buildMenuItem(Icons.history, 'سجل العمليات', () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const TransactionHistoryScreen()));
+            }),
+            _buildMenuItem(Icons.help_outline, 'المساعدة والدعم', () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpSupportScreen()));
+            }),
+            _buildMenuItem(Icons.info_outline, 'عن التطبيق', () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen()));
+            }),
 
             const SizedBox(height: 40),
 

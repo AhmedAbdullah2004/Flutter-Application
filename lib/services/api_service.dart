@@ -49,7 +49,6 @@ class ApiService {
       );
 
       debugPrint('STATUS: ${response.statusCode}');
-      debugPrint('RESPONSE: ${response.body}');
 
       if (response.body.isEmpty) {
         if (response.statusCode >= 200 && response.statusCode < 300) {

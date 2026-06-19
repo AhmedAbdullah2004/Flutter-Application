@@ -94,45 +94,6 @@ class _HomeDashboardState extends State<HomeDashboard>
     );
   }
 
-  void _showQuickActionDialog(String action) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(action),
-        content: Text('هل تريد المتابعة مع $action؟'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              if (action == 'إيداع') {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('تم الإيداع بنجاح! +500 ج.م'),
-                      backgroundColor: AppColors.success),
-                );
-              } else if (action == 'صرف') {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('تم صرف 100 يورو بنجاح!'),
-                      backgroundColor: AppColors.primary),
-                );
-              } else if (action == 'طلب') {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('تم إرسال طلب الفلوس بنجاح!'),
-                      backgroundColor: AppColors.accent),
-                );
-              }
-            },
-            child: const Text('تأكيد'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final walletProvider = Provider.of<WalletProvider>(context);
@@ -256,16 +217,12 @@ class _HomeDashboardState extends State<HomeDashboard>
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
 
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 4,
-                childAspectRatio: 0.9,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildQuickAction(
                       Icons.send_rounded, 'إرسال', AppColors.primary, () {
-                    Navigator.pushNamed(context,
-                        '/transfer'); // أو MaterialPageRoute لـ TransferScreen
+                    Navigator.pushNamed(context, '/transfer');
                   }),
                   _buildQuickAction(
                       Icons.request_page_rounded, 'طلب', AppColors.accent, () {
@@ -275,10 +232,6 @@ class _HomeDashboardState extends State<HomeDashboard>
                       Icons.currency_exchange_rounded, 'صرف', Colors.purple,
                       () {
                     Navigator.pushNamed(context, '/currency');
-                  }),
-                  _buildQuickAction(
-                      Icons.add_rounded, 'إيداع', AppColors.success, () {
-                    _showQuickActionDialog('إيداع');
                   }),
                 ],
               ),
@@ -349,19 +302,25 @@ class _HomeDashboardState extends State<HomeDashboard>
 
   Widget _buildQuickAction(
       IconData icon, String label, Color color, VoidCallback onTap) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
       child: Column(
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
               borderRadius: BorderRadius.circular(18),
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
             ),
-            child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(height: 8),
           Text(label,

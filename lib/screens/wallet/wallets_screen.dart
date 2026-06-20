@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/wallet_provider.dart';
 import '../../utils/constants.dart';
 import 'wallet_detail_screen.dart';
+import '../../providers/auth_provider.dart';
 
 class WalletsScreen extends StatelessWidget {
   const WalletsScreen({super.key});
@@ -85,7 +86,8 @@ class WalletsScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(ctx);
-                await provider.createWallet(selectedCurrency, null);
+                final token = Provider.of<AuthProvider>(context, listen: false).token;
+                await provider.createWallet(selectedCurrency, token);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('تم إنشاء محفظة $selectedCurrency بنجاح!'), backgroundColor: AppColors.success),

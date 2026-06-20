@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
 import '../auth/login_screen.dart';
@@ -9,12 +10,26 @@ import 'transaction_history_screen.dart';
 import 'help_support_screen.dart';
 import 'about_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      Provider.of<AuthProvider>(context, listen: false).fetchUserProfile();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final user = authProvider.user;
 
     return Scaffold(
       appBar: AppBar(title: const Text('حسابي')),
@@ -29,11 +44,11 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              authProvider.user?.name ?? 'أحمد محمد',
+              user?.name ?? 'جاري تحميل البيانات...',
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             Text(
-              authProvider.user?.email ?? 'ahmed@test.com',
+              user?.email ?? '',
               style: const TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 32),
@@ -65,7 +80,7 @@ class ProfileScreen extends StatelessWidget {
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      (route) => false,
+                          (route) => false,
                     );
                   }
                 },

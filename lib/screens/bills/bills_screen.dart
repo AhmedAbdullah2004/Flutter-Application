@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/wallet_provider.dart';
 import '../../services/api_service.dart';
 import '../../utils/constants.dart';
 
@@ -53,6 +54,96 @@ class _BillsScreenState extends State<BillsScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _payBill(Map<String, dynamic> biller) async {
+    final amountCtrl = TextEditingController();
+    final otpCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('دفع ${biller['name']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: amountCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'المبلغ'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: otpCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'كود OTP'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              final walletProvider =
+              Provider.of<WalletProvider>(context, listen: false);
+
+              if (walletProvider.wallets.isEmpty) {
+                await walletProvider.loadWallets(token: auth.token);
+              }
+
+              if (walletProvider.wallets.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('لا توجد محفظة')),
+                );
+                return;
+              }
+
+              final walletId = walletProvider.wallets.first.id;
+
+              try {
+                final response = await _apiService.post(
+                  ApiConstants.billPay,
+                  token: auth.token,
+                  body: {
+                    "walletId": walletId,
+                    "billerId": biller['id'],
+                    "amount": double.parse(amountCtrl.text.trim()),
+                    "otpCode": otpCtrl.text.trim(),
+                  },
+                );
+
+                await walletProvider.loadWallets(token: auth.token);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      response['message']?.toString() ?? 'تم دفع الفاتورة بنجاح',
+                    ),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      e.toString().replaceAll('Exception:', '').trim(),
+                    ),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+            child: const Text('ادفع'),
+          ),
+        ],
+      ),
+    );
   }
 
   IconData _iconForCategory(String category) {
@@ -110,7 +201,6 @@ class _BillsScreenState extends State<BillsScreen> {
           final biller = _billers[index];
           final name = biller['name']?.toString() ?? '';
           final category = biller['category']?.toString() ?? '';
-
           final color = _colorForCategory(category);
 
           return Card(
@@ -125,12 +215,9 @@ class _BillsScreenState extends State<BillsScreen> {
               ),
               title: Text(name),
               subtitle: Text(category),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('تم اختيار $name')),
-                );
-              },
+              trailing:
+              const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _payBill(biller),
             ),
           );
         },

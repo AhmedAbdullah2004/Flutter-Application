@@ -6,7 +6,7 @@ import '../../utils/constants.dart';
 import '../wallet/wallet_detail_screen.dart';
 import '../wallet/wallets_screen.dart';
 import '../transfer/transfer_screen.dart';
-
+import '../notifications/notifications_screen.dart';
 class HomeDashboard extends StatefulWidget {
   const HomeDashboard({super.key});
 
@@ -114,7 +114,14 @@ class _HomeDashboardState extends State<HomeDashboard>
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            onPressed: _showNotifications,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen(),
+                ),
+              );
+            },
           ),
           const SizedBox(width: 8),
         ],

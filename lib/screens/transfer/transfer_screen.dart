@@ -176,107 +176,119 @@ class _TransferScreenState extends State<TransferScreen> {
     final walletProvider = Provider.of<WalletProvider>(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('إرسال أموال')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            WalletSelectorWidget(
-              wallets: walletProvider.wallets,
-              selectedWallet: _selectedWallet,
-              onChanged: (wallet) {
-                setState(() => _selectedWallet = wallet);
-              },
-            ),
-            const SizedBox(height: 20),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 120,
+          ),
+          child: Column(
+            children: [
+              WalletSelectorWidget(
+                wallets: walletProvider.wallets,
+                selectedWallet: _selectedWallet,
+                onChanged: (wallet) {
+                  setState(() => _selectedWallet = wallet);
+                },
+              ),
+              const SizedBox(height: 20),
 
-            if (_selectedWallet != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
+              if (_selectedWallet != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    'الرصيد المتاح: ${_selectedWallet!.balance.toStringAsFixed(2)} ${_selectedWallet!.currencyCode}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ),
-                child: Text(
-                  'الرصيد المتاح: ${_selectedWallet!.balance.toStringAsFixed(2)} ${_selectedWallet!.currencyCode}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+
+              const SizedBox(height: 20),
+
+              TextField(
+                controller: _receiverController,
+                decoration: const InputDecoration(
+                  labelText: 'البريد أو رقم الهاتف',
+                  prefixIcon: Icon(Icons.person_search),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              TextField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'المبلغ',
+                  suffixText: _selectedWallet?.currencyCode,
+                  prefixIcon: const Icon(Icons.attach_money),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              TextField(
+                controller: _descController,
+                decoration: const InputDecoration(
+                  labelText: 'وصف اختياري',
+                  prefixIcon: Icon(Icons.note),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: _isSendingOtp ? null : _sendTransferOtp,
+                  icon: _isSendingOtp
+                      ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                      : const Icon(Icons.sms),
+                  label: const Text('إرسال OTP للتحويل'),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              TextField(
+                controller: _otpController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'كود OTP',
+                  prefixIcon: Icon(Icons.lock),
+                ),
+              ),
+              const SizedBox(height: 40),
+
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _sendTransfer,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                    'إرسال الآن',
+                    style: TextStyle(fontSize: 18),
                   ),
                 ),
               ),
-
-            const SizedBox(height: 20),
-
-            TextField(
-              controller: _receiverController,
-              decoration: const InputDecoration(
-                labelText: 'البريد أو رقم الهاتف',
-                prefixIcon: Icon(Icons.person_search),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            TextField(
-              controller: _amountController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'المبلغ',
-                suffixText: _selectedWallet?.currencyCode,
-                prefixIcon: const Icon(Icons.attach_money),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            TextField(
-              controller: _descController,
-              decoration: const InputDecoration(
-                labelText: 'وصف اختياري',
-                prefixIcon: Icon(Icons.note),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton.icon(
-                onPressed: _isSendingOtp ? null : _sendTransferOtp,
-                icon: _isSendingOtp
-                    ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-                    : const Icon(Icons.sms),
-                label: const Text('إرسال OTP للتحويل'),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            TextField(
-              controller: _otpController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'كود OTP',
-                prefixIcon: Icon(Icons.lock),
-              ),
-            ),
-            const SizedBox(height: 40),
-
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _sendTransfer,
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('إرسال الآن', style: TextStyle(fontSize: 18)),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

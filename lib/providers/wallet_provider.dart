@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/wallet_model.dart';
 import '../services/api_service.dart';
@@ -17,6 +18,18 @@ class WalletProvider extends ChangeNotifier {
   double get totalBalance =>
       _wallets.fold(0.0, (sum, wallet) => sum + wallet.balance);
 
+  String? _userIdFromToken(String? token) {
+    if (token == null || token.isEmpty) return null;
+
+    final parts = token.split('.');
+    if (parts.length != 3) return null;
+
+    final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+    final data = jsonDecode(payload);
+
+    return data['nameid']?.toString();
+  }
+
   Future<void> loadWallets({String? token}) async {
     _isLoading = true;
     _error = null;
@@ -28,12 +41,12 @@ class WalletProvider extends ChangeNotifier {
         token: token,
       );
 
+      debugPrint('LOAD WALLETS RESPONSE: $response');
+
       final data = response['data'];
 
       if (data is List) {
-        _wallets = data
-            .map((item) => WalletModel.fromJson(item))
-            .toList();
+        _wallets = data.map((item) => WalletModel.fromJson(item)).toList();
       } else {
         _wallets = [];
       }
@@ -42,6 +55,8 @@ class WalletProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _error = e.toString().replaceAll('Exception:', '').trim();
+      debugPrint('LOAD WALLETS ERROR: $_error');
+
       _isLoading = false;
       notifyListeners();
     }
@@ -53,27 +68,28 @@ class WalletProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final userId = _userIdFromToken(token);
+
       final response = await _apiService.post(
-        ApiConstants.myWallets.replaceAll('/my-wallets', ''),
+        '/api/Wallet',
         token: token,
         body: {
+          "userId": userId,
           "currencyCode": currencyCode,
         },
       );
 
-      final data = response['data'];
+      debugPrint('CREATE WALLET RESPONSE: $response');
 
-      if (data is Map<String, dynamic>) {
-        _wallets.add(WalletModel.fromJson(data));
-      } else {
-        await loadWallets(token: token);
-      }
+      await loadWallets(token: token);
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString().replaceAll('Exception:', '').trim();
+      debugPrint('CREATE WALLET ERROR: $_error');
+
       _isLoading = false;
       notifyListeners();
       return false;
@@ -85,16 +101,10 @@ class WalletProvider extends ChangeNotifier {
       final endpoint =
       ApiConstants.walletBalance.replaceAll('{walletId}', walletId);
 
-      final response = await _apiService.get(
-        endpoint,
-        token: token,
-      );
-
+      final response = await _apiService.get(endpoint, token: token);
       final data = response['data'];
 
-      if (data is num) {
-        return data.toDouble();
-      }
+      if (data is num) return data.toDouble();
 
       if (data is Map<String, dynamic>) {
         return (data['balance'] ?? 0).toDouble();

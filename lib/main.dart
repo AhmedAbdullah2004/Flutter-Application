@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/wallet_provider.dart';
 import 'providers/transaction_provider.dart';
+
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/currency/currency_exchange_screen.dart';
 import 'screens/money_request/money_request_screen.dart';
-import 'screens/transfer/transfer_screen.dart'; // ← أضفت الاستيراد
+import 'screens/money_request/money_requests_history_screen.dart';
+import 'screens/transfer/transfer_screen.dart';
+import 'screens/bank/fake_bank_screen.dart';
 
 void main() {
   runApp(const DigitalWalletApp());
@@ -51,7 +53,10 @@ class DigitalWalletApp extends StatelessWidget {
           '/home': (context) => const HomeScreen(),
           '/currency': (context) => const CurrencyExchangeScreen(),
           '/money-request': (context) => const MoneyRequestScreen(),
-          '/transfer': (context) => const TransferScreen(), // ← أضفت الـ route
+          '/money-requests-history': (context) =>
+          const MoneyRequestsHistoryScreen(),
+          '/transfer': (context) => const TransferScreen(),
+          '/bank': (context) => const FakeBankScreen(),
         },
       ),
     );
@@ -73,14 +78,17 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
+
     _scaleAnimation = CurvedAnimation(
       parent: _controller,
       curve: Curves.elasticOut,
     );
+
     _controller.forward();
 
     Future.delayed(const Duration(seconds: 2), () {

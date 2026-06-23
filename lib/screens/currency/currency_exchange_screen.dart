@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'currency_history_screen.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/wallet_provider.dart';
@@ -28,6 +29,7 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
 
   bool _isLoadingRate = false;
   bool _isExchanging = false;
+  bool _isSendingOtp = false;
 
   final List<String> _currencies = [
     'EGP',
@@ -73,12 +75,16 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
 
       _calculateConversion();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceAll('Exception:', '').trim())),
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception:', '').trim()),
+          backgroundColor: AppColors.error,
+        ),
       );
     }
 
-    setState(() => _isLoadingRate = false);
+    if (mounted) setState(() => _isLoadingRate = false);
   }
 
   void _calculateConversion() {
@@ -98,13 +104,53 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
     await _loadRate();
   }
 
+  Future<void> _sendExchangeOtp() async {
+    setState(() => _isSendingOtp = true);
+
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    final success = await auth.sendOtp(
+      otpType: 'Transfer',
+    );
+
+    if (!mounted) return;
+
+    setState(() => _isSendingOtp = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'تم إرسال OTP للصرف' : auth.error ?? 'فشل إرسال OTP',
+        ),
+        backgroundColor: success ? AppColors.success : AppColors.error,
+      ),
+    );
+  }
+
   Future<void> _performExchange() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final walletProvider = Provider.of<WalletProvider>(context, listen: false);
 
+    final otp = _otpController.text.trim();
+    final amount = double.tryParse(_amountController.text.trim()) ?? 0;
+
     if (auth.token == null || auth.token!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('يجب تسجيل الدخول أولاً')),
+      );
+      return;
+    }
+
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('اكتب مبلغ صحيح')),
+      );
+      return;
+    }
+
+    if (otp.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('اكتب كود OTP')),
       );
       return;
     }
@@ -128,15 +174,6 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
       return;
     }
 
-    final amount = double.tryParse(_amountController.text) ?? 0;
-
-    if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('اكتب مبلغ صحيح')),
-      );
-      return;
-    }
-
     setState(() => _isExchanging = true);
 
     try {
@@ -147,7 +184,7 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
           "fromWalletId": fromWallet.first.id,
           "toWalletId": toWallet.first.id,
           "amount": amount,
-          "otpCode": _otpController.text.trim(),
+          "otpCode": otp,
         },
       );
 
@@ -157,10 +194,13 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(response['message']?.toString() ?? 'تم تحويل العملة بنجاح'),
+          content:
+          Text(response['message']?.toString() ?? 'تم تحويل العملة بنجاح'),
           backgroundColor: AppColors.success,
         ),
       );
+
+      _otpController.clear();
     } catch (e) {
       if (!mounted) return;
 
@@ -210,10 +250,10 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
               'اختر العملتين وأدخل المبلغ',
               style: TextStyle(color: AppColors.textSecondary),
             ),
-
             const SizedBox(height: 32),
 
-            const Text('من العملة', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('من العملة',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             _buildCurrencyDropdown(_fromCurrency, (val) async {
               setState(() => _fromCurrency = val!);
@@ -242,7 +282,8 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
 
             const SizedBox(height: 16),
 
-            const Text('إلى العملة', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('إلى العملة',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             _buildCurrencyDropdown(_toCurrency, (val) async {
               setState(() => _toCurrency = val!);
@@ -251,7 +292,8 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
 
             const SizedBox(height: 28),
 
-            const Text('المبلغ', style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text('المبلغ',
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             TextFormField(
               controller: _amountController,
@@ -269,6 +311,24 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
             ),
 
             const SizedBox(height: 20),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
+                onPressed: _isSendingOtp ? null : _sendExchangeOtp,
+                icon: _isSendingOtp
+                    ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                    : const Icon(Icons.sms),
+                label: const Text('إرسال OTP للصرف'),
+              ),
+            ),
+
+            const SizedBox(height: 16),
 
             TextFormField(
               controller: _otpController,
@@ -352,7 +412,10 @@ class _CurrencyExchangeScreenState extends State<CurrencyExchangeScreen> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                   'تحويل الآن',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

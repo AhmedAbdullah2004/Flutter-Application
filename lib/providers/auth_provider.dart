@@ -24,10 +24,6 @@ class AuthProvider extends ChangeNotifier {
   Future<void> loadToken() async {
     final savedToken = await _secureStorage.read(key: 'auth_token');
     _token = savedToken?.trim();
-
-    debugPrint('LOADED TOKEN: ${_token != null ? "YES" : "NO"}');
-    debugPrint('TOKEN LENGTH: ${_token?.length ?? 0}');
-
     notifyListeners();
   }
 
@@ -46,11 +42,8 @@ class AuthProvider extends ChangeNotifier {
       );
 
       final data = response['data'];
-
       _tempUserId =
           data?['userId']?.toString() ?? response['userId']?.toString();
-
-      debugPrint('LOGIN USER ID: $_tempUserId');
 
       if (_tempUserId == null || _tempUserId!.isEmpty) {
         _error = 'لم يتم استلام userId من السيرفر';
@@ -86,18 +79,8 @@ class AuthProvider extends ChangeNotifier {
         },
       );
 
-      debugPrint("VERIFY RESPONSE = $response");
-
       final data = response['data'];
-
-      final receivedToken =
-          data?['token']?.toString() ?? response['token']?.toString();
-
-      _token = receivedToken?.trim();
-
-      debugPrint('TOKEN FULL = $_token');
-      debugPrint('TOKEN SAVED: ${_token != null && _token!.isNotEmpty}');
-      debugPrint('TOKEN LENGTH: ${_token?.length ?? 0}');
+      _token = data?['token']?.toString() ?? response['token']?.toString();
 
       if (_token == null || _token!.isEmpty) {
         _error = 'لم يتم استلام Token من السيرفر';
@@ -107,12 +90,44 @@ class AuthProvider extends ChangeNotifier {
       }
 
       await _secureStorage.write(key: 'auth_token', value: _token);
+      await fetchUserProfile();
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint("VERIFY ERROR = $e");
+      _error = e.toString().replaceAll('Exception:', '').trim();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> sendOtp({required String otpType}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final userId = _tempUserId ?? _user?.id;
+
+      if (userId == null || userId.isEmpty) {
+        _error = 'User ID غير موجود';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      await _apiService.post(
+        '${ApiConstants.authSendOtp}/$userId?otpType=$otpType',
+        token: _token,
+        body: {},
+      );
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
       _error = e.toString().replaceAll('Exception:', '').trim();
       _isLoading = false;
       notifyListeners();

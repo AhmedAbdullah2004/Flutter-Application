@@ -8,7 +8,13 @@ class ApiService {
 
   Future<Map<String, dynamic>> get(String endpoint, {String? token}) async {
     final url = Uri.parse('$baseUrl$endpoint');
-    return _send(() => http.get(url, headers: _headers(token)), url);
+
+    debugPrint('API GET: $url');
+
+    return _send(
+          () => http.get(url, headers: _headers(token)),
+      url,
+    );
   }
 
   Future<Map<String, dynamic>> post(
@@ -31,11 +37,31 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> put(
+      String endpoint, {
+        Map<String, dynamic>? body,
+        String? token,
+      }) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+
+    debugPrint('API PUT: $url');
+    debugPrint('BODY: ${jsonEncode(body)}');
+
+    return _send(
+          () => http.put(
+        url,
+        headers: _headers(token),
+        body: body != null ? jsonEncode(body) : null,
+      ),
+      url,
+    );
+  }
+
   Map<String, String> _headers(String? token) {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 

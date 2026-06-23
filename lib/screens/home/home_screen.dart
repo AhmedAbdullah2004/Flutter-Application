@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
+
 import '../wallet/wallets_screen.dart';
 import '../transfer/transfer_screen.dart';
 import '../bills/bills_screen.dart';
 import '../profile/profile_screen.dart';
+import '../bank/fake_bank_screen.dart';
 import 'home_dashboard.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,12 +18,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeDashboard(),
-    const WalletsScreen(),
-    const TransferScreen(),
-    const BillsScreen(),
-    const ProfileScreen(),
+  final List<Widget> _screens = const [
+    HomeDashboard(),
+    WalletsScreen(),
+    TransferScreen(),
+    BillsScreen(),
+    FakeBankScreen(),
+    ProfileScreen(),
   ];
 
   final List<BottomNavItem> _navItems = [
@@ -31,13 +32,12 @@ class _HomeScreenState extends State<HomeScreen> {
     BottomNavItem(icon: Icons.account_balance_wallet_rounded, label: 'المحافظ'),
     BottomNavItem(icon: Icons.send_rounded, label: 'تحويل'),
     BottomNavItem(icon: Icons.receipt_long_rounded, label: 'الفواتير'),
+    BottomNavItem(icon: Icons.account_balance_rounded, label: 'البنك'),
     BottomNavItem(icon: Icons.person_rounded, label: 'حسابي'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -60,18 +60,21 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.white,
           selectedItemColor: AppColors.primary,
           unselectedItemColor: AppColors.textSecondary,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           items: _navItems.map((item) {
             return BottomNavigationBarItem(
-              icon: Icon(item.icon, size: 26),
+              icon: Icon(item.icon, size: 24),
               activeIcon: Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(item.icon, size: 26, color: AppColors.primary),
+                child: Icon(item.icon, size: 24, color: AppColors.primary),
               ),
               label: item.label,
             );

@@ -103,6 +103,49 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> register(
+      String name,
+      String email,
+      String phone,
+      String password,
+      ) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.post(
+        ApiConstants.authRegister,
+        body: {
+          "fullName": name.trim(),
+          "email": email.trim(),
+          "phoneNumber": phone.trim(),
+          "password": password,
+          "confirmPassword": password,
+        },
+      );
+
+      final data = response['data'];
+
+      _token = data?['token']?.toString();
+      _tempUserId = data?['userId']?.toString();
+
+      if (_token != null && _token!.isNotEmpty) {
+        await _secureStorage.write(key: 'auth_token', value: _token);
+        await fetchUserProfile();
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception:', '').trim();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> sendOtp({required String otpType}) async {
     _isLoading = true;
     _error = null;
@@ -122,34 +165,6 @@ class AuthProvider extends ChangeNotifier {
         '${ApiConstants.authSendOtp}/$userId?otpType=$otpType',
         token: _token,
         body: {},
-      );
-
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = e.toString().replaceAll('Exception:', '').trim();
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> register(String name, String email, String password) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      await _apiService.post(
-        ApiConstants.authRegister,
-        body: {
-          "fullName": name.trim(),
-          "email": email.trim(),
-          "phoneNumber": "01012345678",
-          "password": password,
-          "confirmPassword": password,
-        },
       );
 
       _isLoading = false;

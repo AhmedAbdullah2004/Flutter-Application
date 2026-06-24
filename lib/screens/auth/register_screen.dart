@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
-import 'otp_verification_screen.dart';
+import '../home/home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -13,14 +14,21 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -32,33 +40,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     final success = await authProvider.register(
+      _nameController.text.trim(),
       _emailController.text.trim(),
+      _phoneController.text.trim(),
       _passwordController.text,
-      "اسم المستخدم", // يمكنك إضافة حقل Name في الشاشة لاحقاً
     );
 
-    if (success && mounted) {
+    if (!mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('تم إنشاء الحساب بنجاح! تحقق من الـ OTP'),
+          content: Text('تم إنشاء الحساب بنجاح'),
           backgroundColor: AppColors.success,
         ),
       );
 
-      Navigator.push(
+      Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(
-            emailOrPhone: _emailController.text.trim(),
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+            (route) => false,
       );
-    } else if (mounted) {
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.error ?? 'حدث خطأ أثناء التسجيل'),
           backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -69,10 +76,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('إنشاء حساب جديد'),
-        backgroundColor: Colors.transparent,
-      ),
+      appBar: AppBar(title: const Text('إنشاء حساب جديد')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -83,12 +87,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 20),
 
                 TextFormField(
-                  controller: _emailController,
+                  controller: _nameController,
                   decoration: const InputDecoration(
-                    labelText: 'البريد الإلكتروني أو رقم الهاتف',
+                    labelText: 'الاسم الكامل',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'الاسم مطلوب' : null,
+                ),
+
+                const SizedBox(height: 20),
+
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'البريد الإلكتروني',
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
-                  validator: (v) => v!.isEmpty ? 'مطلوب' : null,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) {
+                      return 'البريد الإلكتروني مطلوب';
+                    }
+                    if (!v.contains('@')) {
+                      return 'اكتب بريد إلكتروني صحيح';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'رقم الهاتف',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                  validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'رقم الهاتف مطلوب' : null,
                 ),
 
                 const SizedBox(height: 20),
@@ -100,23 +138,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     labelText: 'كلمة المرور',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() => _obscurePassword = !_obscurePassword);
+                      },
                     ),
                   ),
-                  validator: (v) => v!.length < 6 ? '6 أحرف على الأقل' : null,
+                  validator: (v) =>
+                  v == null || v.length < 6 ? '6 أحرف على الأقل' : null,
                 ),
 
                 const SizedBox(height: 20),
 
                 TextFormField(
                   controller: _confirmPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
+                  obscureText: _obscureConfirmPassword,
+                  decoration: InputDecoration(
                     labelText: 'تأكيد كلمة المرور',
-                    prefixIcon: Icon(Icons.lock_outline),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirmPassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(
+                              () => _obscureConfirmPassword =
+                          !_obscureConfirmPassword,
+                        );
+                      },
+                    ),
                   ),
-                  validator: (v) => v != _passwordController.text ? 'كلمتا المرور غير متطابقتين' : null,
+                  validator: (v) => v != _passwordController.text
+                      ? 'كلمتا المرور غير متطابقتين'
+                      : null,
                 ),
 
                 const SizedBox(height: 32),
@@ -132,7 +192,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     child: authProvider.isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('إنشاء الحساب', style: TextStyle(fontSize: 18)),
+                        : const Text(
+                      'إنشاء الحساب',
+                      style: TextStyle(fontSize: 18),
+                    ),
                   ),
                 ),
               ],

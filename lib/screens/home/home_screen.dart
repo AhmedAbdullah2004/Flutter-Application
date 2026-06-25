@@ -21,7 +21,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = const [
     HomeDashboard(),
     WalletsScreen(),
-    TransferScreen(),
     BillsScreen(),
     FakeBankScreen(),
     ProfileScreen(),
@@ -30,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<BottomNavItem> _navItems = [
     BottomNavItem(icon: Icons.home_rounded, label: 'الرئيسية'),
     BottomNavItem(icon: Icons.account_balance_wallet_rounded, label: 'المحافظ'),
-    BottomNavItem(icon: Icons.send_rounded, label: 'تحويل'),
+    //BottomNavItem(icon: Icons.send_rounded, label: 'تحويل'),
     BottomNavItem(icon: Icons.receipt_long_rounded, label: 'الفواتير'),
     BottomNavItem(icon: Icons.account_balance_rounded, label: 'البنك'),
     BottomNavItem(icon: Icons.person_rounded, label: 'حسابي'),

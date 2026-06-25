@@ -53,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.error ?? 'حدث خطأ أثناء تسجيل الدخول'),
+          content: Text(authProvider.error ?? 'الحساب غير موجود، من فضلك قم بإنشاء حساب'),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

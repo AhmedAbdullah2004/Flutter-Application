@@ -17,12 +17,24 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] ?? json['userId'] ?? '',
-      name: json['name'] ?? json['unique_name'] ?? 'مستخدم',
-      email: json['email'] ?? '',
-      phone: json['phone'] ?? '',
-      kycLevel: json['kycLevel'] ?? 'Basic',
-      status: json['status'] ?? 'Active',
+      id: json['id']?.toString() ??
+          json['userId']?.toString() ??
+          '',
+
+      name: json['fullName']?.toString() ??
+          json['name']?.toString() ??
+          json['unique_name']?.toString() ??
+          'مستخدم',
+
+      email: json['email']?.toString() ?? '',
+
+      phone: json['phoneNumber']?.toString() ??
+          json['phone']?.toString() ??
+          '',
+
+      kycLevel: json['kycLevel']?.toString() ?? 'Basic',
+
+      status: json['status']?.toString() ?? 'Active',
     );
   }
 }

@@ -56,7 +56,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString().replaceAll('Exception:', '').trim();
+      _error = 'الحساب غير موجود، من فضلك قم بإنشاء حساب';
       _isLoading = false;
       notifyListeners();
       return false;
@@ -186,7 +186,7 @@ class AuthProvider extends ChangeNotifier {
         ApiConstants.userProfile,
         token: _token,
       );
-
+      debugPrint("PROFILE RESPONSE = $response");
       _user = UserModel.fromJson(response['data'] ?? response);
       notifyListeners();
     } catch (e) {

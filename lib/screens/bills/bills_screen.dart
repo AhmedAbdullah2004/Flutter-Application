@@ -94,7 +94,7 @@ class _BillsScreenState extends State<BillsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           title: Text('دفع ${biller['name']}'),
           content: SingleChildScrollView(
             child: Column(
@@ -161,14 +161,14 @@ class _BillsScreenState extends State<BillsScreen> {
                 final otp = otpCtrl.text.trim();
 
                 if (selectedWallet == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(content: Text('اختر المحفظة أولاً')),
                   );
                   return;
                 }
 
                 if (amount == null || amount <= 0 || otp.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('اكتب المبلغ و OTP بشكل صحيح'),
                     ),
@@ -177,7 +177,7 @@ class _BillsScreenState extends State<BillsScreen> {
                 }
 
                 if (selectedWallet!.balance < amount) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('رصيد المحفظة غير كافي'),
                       backgroundColor: AppColors.error,
@@ -186,6 +186,7 @@ class _BillsScreenState extends State<BillsScreen> {
                   return;
                 }
 
+                final parentContext = context;
                 Navigator.pop(ctx);
 
                 try {
@@ -204,24 +205,95 @@ class _BillsScreenState extends State<BillsScreen> {
 
                   if (!mounted) return;
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        response['message']?.toString() ??
-                            'تم دفع الفاتورة بنجاح',
-                      ),
-                      backgroundColor: AppColors.success,
-                    ),
+                  await showDialog(
+                    context: parentContext,
+                    barrierDismissible: false,
+                    builder: (successContext) {
+                      return Dialog(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(28),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(40),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 130,
+                                height: 130,
+                                decoration: const BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 80,
+                                ),
+                              ),
+                              const SizedBox(height: 25),
+                              const Text(
+                                'تم الدفع بنجاح',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              Text(
+                                response['message']?.toString() ??
+                                    'تم سداد الفاتورة بنجاح',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 28),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 55,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.pop(successContext);
+                                  },
+                                  child: const Text(
+                                    'موافق',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   );
                 } catch (e) {
                   if (!mounted) return;
 
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
                     SnackBar(
                       content: Text(
                         e.toString().replaceAll('Exception:', '').trim(),
                       ),
                       backgroundColor: AppColors.error,
+                      behavior: SnackBarBehavior.floating,
                     ),
                   );
                 }
